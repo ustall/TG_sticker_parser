@@ -1,41 +1,82 @@
 (function () {
     var videos = document.querySelectorAll("video");
-    
+
     if (videos.length === 0) {
-        console.log("Video not found.");
+        console.log("Видео не найдено.");
         return;
     }
 
     console.log("Найденные видео:");
+
+    var container = document.createElement("div");
+    container.style = "position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid black; z-index: 9999; max-height: 80vh; overflow-y: auto;";
+    document.body.appendChild(container);
+
     videos.forEach((video, index) => {
-        console.log(`${index}: ${video.src || (video.querySelector("source") ? video.querySelector("source").src : "blob-URL")}`);
+        var src = video.src || (video.querySelector("source") ? video.querySelector("source").src : "blob-URL");
+
+        var videoInfo = document.createElement("div");
+        videoInfo.style = "margin-bottom: 10px;";
+
+        var title = document.createElement("p");
+        title.textContent = `Видео ${index}: ${video.videoWidth}x${video.videoHeight}, ${video.duration.toFixed(2)} сек`;
+        videoInfo.appendChild(title);
+
+        var preview = document.createElement("canvas");
+        preview.width = video.videoWidth / 4;
+        preview.height = video.videoHeight / 4;
+        var ctx = preview.getContext("2d");
+        ctx.drawImage(video, 0, 0, preview.width, preview.height);
+        videoInfo.appendChild(preview);
+
+        var downloadButton = document.createElement("button");
+        downloadButton.textContent = "Скачать";
+        downloadButton.onclick = function () {
+            downloadVideo(video, index);
+        };
+        videoInfo.appendChild(downloadButton);
+
+        container.appendChild(videoInfo);
     });
 
-    var index = prompt("Enter the number of the video to download (from the console list):");
+    var downloadAllButton = document.createElement("button");
+    downloadAllButton.textContent = "Скачать все";
+    downloadAllButton.style = "display: block; margin-top: 10px;";
+    downloadAllButton.onclick = function () {
+        videos.forEach((video, index) => downloadVideo(video, index));
+    };
+    container.appendChild(downloadAllButton);
 
-    if (index === null || isNaN(index) || index < 0 || index >= videos.length) {
-        console.log("Incorrect number.");
-        return;
+    var downloadLastActiveButton = document.createElement("button");
+    downloadLastActiveButton.textContent = "Скачать последнее активное";
+    downloadLastActiveButton.style = "display: block; margin-top: 5px;";
+    downloadLastActiveButton.onclick = function () {
+        var lastActiveVideo = document.querySelector("video:focus") || document.querySelector("video:hover") || videos[videos.length - 1];
+        var index = Array.from(videos).indexOf(lastActiveVideo);
+        if (index !== -1) {
+            downloadVideo(lastActiveVideo, index);
+        }
+    };
+    container.appendChild(downloadLastActiveButton);
+
+    function downloadVideo(video, index) {
+        var src = video.src || (video.querySelector("source") ? video.querySelector("source").src : null);
+        if (!src) {
+            console.log(`Не удалось найти ссылку на видео ${index}.`);
+            return;
+        }
+
+        fetch(src)
+            .then(response => response.blob())
+            .then(blob => {
+                var a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `video_${index}.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                console.log(`Видео ${index} скачано.`);
+            })
+            .catch(error => console.error(`Ошибка скачивания видео ${index}:`, error));
     }
-
-    var video = videos[index];
-    var src = video.src || (video.querySelector("source") ? video.querySelector("source").src : null);
-
-    if (!src) {
-        console.log("Couldn't find the link to the video.");
-        return;
-    }
-
-    fetch(src)
-        .then(response => response.blob())
-        .then(blob => {
-            var a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `video_${index}.mp4`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            console.log(`Video ${index} donwoladed.`);
-        })
-        .catch(error => console.error("Error:", error));
 })();

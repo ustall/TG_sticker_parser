@@ -1,0 +1,41 @@
+(function () {
+    var videos = document.querySelectorAll("video");
+    
+    if (videos.length === 0) {
+        console.log("Video not found.");
+        return;
+    }
+
+    console.log("Найденные видео:");
+    videos.forEach((video, index) => {
+        console.log(`${index}: ${video.src || (video.querySelector("source") ? video.querySelector("source").src : "blob-URL")}`);
+    });
+
+    var index = prompt("Enter the number of the video to download (from the console list):");
+
+    if (index === null || isNaN(index) || index < 0 || index >= videos.length) {
+        console.log("Incorrect number.");
+        return;
+    }
+
+    var video = videos[index];
+    var src = video.src || (video.querySelector("source") ? video.querySelector("source").src : null);
+
+    if (!src) {
+        console.log("Couldn't find the link to the video.");
+        return;
+    }
+
+    fetch(src)
+        .then(response => response.blob())
+        .then(blob => {
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `video_${index}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            console.log(`Video ${index} donwoladed.`);
+        })
+        .catch(error => console.error("Error:", error));
+})();
